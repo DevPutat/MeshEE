@@ -3,8 +3,8 @@ import { onUnmounted, Ref, ref } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { Message } from "./types";
-import MainButton from "./domains/main/components/MainButton.vue";
-import DefaultInput from "./domains/main/components/DefaultInput.vue";
+import BaseButton from "./domains/main/components/BaseButton.vue";
+import BaseInput from "./domains/main/components/BaseInput.vue";
 import EyeOutline from "./domains/main/icons/EyeOutline.vue";
 
 const greetMsg = ref("");
@@ -66,18 +66,18 @@ async function greet() {
     <p>Click on the Tauri, Vite, and Vue logos to learn more.</p>
 
     <form class="row" @submit.prevent="greet">
-      <DefaultInput id="greet-input" v-model="name" placeholder="Enter a name...">
+      <BaseInput id="greet-input" v-model="name" placeholder="Enter a name...">
         <template #append>
           <EyeOutline style="cursor: pointer" />
         </template>
-      </DefaultInput>
-      <MainButton type="submit">Greet</MainButton>
+      </BaseInput>
+      <BaseButton type="submit">Greet</BaseButton>
     </form>
     <p>{{ greetMsg }}</p>
     <div>
-      <MainButton @click="startReceiving" :disabled="isReceiving">
+      <BaseButton @click="startReceiving" :disabled="isReceiving">
         {{ isReceiving ? "Получение..." : "Начать получение сообщений" }}
-      </MainButton>
+      </BaseButton>
       <div v-if="messages.length">
         <h3>Сообщения:</h3>
         <ul>
