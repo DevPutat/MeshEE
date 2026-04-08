@@ -1,7 +1,7 @@
 use serde_json::json;
 use std::sync::Mutex;
 use tauri::Emitter;
-use tauri::{path::BaseDirectory, Manager};
+use tauri::Manager;
 use tokio::time::{interval, Duration};
 
 use crate::auth::Profile;
