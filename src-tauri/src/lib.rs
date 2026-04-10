@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use serde_json::json;
 use std::sync::Mutex;
 use tauri::Emitter;

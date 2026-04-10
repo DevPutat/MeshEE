@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use std::path::Path;
 
 pub use crate::auth::profile::Profile;
