@@ -29,7 +29,7 @@ mod tests {
     async fn test_connection_via_relay_fallback() {
         use std::time::Duration;
         use libp2p::swarm::SwarmEvent;
-        use crate::p2p::swarm::{create_relay_server, create_swarm_with_relay};
+        use crate::p2p::swarm::{create_relay_server, create_swarm_with_relay, RelayChatBehaviourEvent};
 
         let relay_kp = Keypair::generate_ed25519();
         let mut relay_swarm = create_relay_server(relay_kp).await.unwrap();
@@ -43,42 +43,43 @@ mod tests {
         };
         let relay_peer_id = *relay_swarm.local_peer_id();
 
-        let client_kp = Keypair::generate_ed25519();
-        let mut client_swarm = create_swarm_with_relay(client_kp).await.unwrap();
+        let client1_kp = Keypair::generate_ed25519();
+        let client2_kp = Keypair::generate_ed25519();
+        let mut client1 = create_swarm_with_relay(client1_kp).await.unwrap();
+        let mut client2 = create_swarm_with_relay(client2_kp).await.unwrap();
 
-        let target = relay_addr.with(Protocol::P2p(relay_peer_id.into()));
-        client_swarm.dial(target).unwrap();
+        let client1_id = *client1.local_peer_id();
+        let client2_id = *client2.local_peer_id();
 
-        // tokio::time::timeout(Duration::from_secs(10), async {
-        //     let mut connected = false;
-        //     let mut reserved = false;
-        //
-        //     loop {
-        //         tokio::select! {
-        //             event = relay_swarm.select_next_some() => {
-        //             },
-        //             event = client_swarm.select_next_some() => {
-        //                 match event {
-        //                     SwarmEvent::ConnectionEstablished { peer_id, .. } 
-        //                         if peer_id == relay_peer_id => {
-        //                         connected = true;
-        //                         let relay_reserve_addr = relay_addr.with(Protocol::P2p(relay_peer_id))
-        //                             .with(Protocol::P2pCircuit);
-        //                     }
-        //                     SwarmEvent::Behaviour(RelayChatBehaviourEvent::RelayClient(
-        //                         relay::client::Event::ReservationReqAccepted { .. } 
-        //                     )) | SwarmEvent::Behaviour(RelayChatBehaviourEvent::RelayClient(
-        //                         relay::client::Event::ReservationConfirmed { .. }
-        //                     )) => {
-        //                         reserved = true;
-        //                     }
-        //                     _ => {}
-        //                 }
-        //             }
-        //         }
-        //         if connected && reserved { break; }
-        //     }
-        // }).await.expect("Timeout: relay reservation failed");
+        let relay_multiaddr = relay_addr.with(Protocol::P2p(relay_peer_id.into()));
+        client1.dial(relay_multiaddr.clone()).unwrap();
+        client2.dial(relay_multiaddr).unwrap();
+
+        tokio::time::timeout(Duration::from_secs(10), async {
+            let mut client1_connected = false;
+            let mut client2_connected = false;
+
+            loop {
+                tokio::select! {
+                    event = client1.select_next_some() => {
+                        if let SwarmEvent::ConnectionEstablished { peer_id, .. } = event {
+                            if peer_id == relay_peer_id {
+                                client1_connected = true;
+                            }
+                        }
+                    }
+                    event = client2.select_next_some() => {
+                        if let SwarmEvent::ConnectionEstablished { peer_id, .. } = event {
+                            if peer_id == relay_peer_id {
+                                client2_connected = true;
+                            }
+                        }
+                    }
+                    _ = relay_swarm.select_next_some() => {}
+                }
+                if client1_connected && client2_connected { break; }
+            }
+        }).await.expect("Timeout: relay reservation failed");
 
     }
 
