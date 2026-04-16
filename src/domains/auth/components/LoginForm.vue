@@ -3,19 +3,18 @@ import { ref } from 'vue';
 import BaseInput from '../../main/components/BaseInput.vue';
 import PasswordInput from './PasswordInput.vue';
 import BaseButton from '../../main/components/BaseButton.vue';
-import { useAuth } from '../../../composables/useAuth';
 
-const { login } = useAuth();
+const emit = defineEmits<{
+    (e: 'submit', {login, password}: {login: string; password: string}): void
+}>()
+
+const {
+    loading = false
+} = defineProps<{loading: boolean}>()
+
 
 const usrLogin = ref('');
 const pswd = ref('');
-const loading = ref(false);
-
-function submit() {
-    loading.value = true;
-    login(usrLogin.value, pswd.value)
-    .finally(() => loading.value = false)
-}
 
 </script>
 <template>
@@ -26,7 +25,7 @@ function submit() {
         <div class="d-flex flex-column jc ac gap-2">
             <BaseInput v-model="usrLogin" placeholder="login" />
             <PasswordInput v-model="pswd" placeholder="password" />
-            <BaseButton :loading="loading" :disabled="!usrLogin || !pswd" @click.stop="submit">login</BaseButton>
+            <BaseButton :loading="loading" :disabled="!usrLogin || !pswd" @click.stop="emit('submit', {login: usrLogin, password: pswd})">login</BaseButton>
         </div>
     </div>
 </template>
