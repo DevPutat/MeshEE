@@ -25,6 +25,32 @@ mod tests {
         tcp, yamux, PeerId, Swarm, Transport,
     };
 
+    #[test]
+    fn test_signature_verification_passes_on_valid() {
+       let device_id = "0000000000000000000000000000000000000000000000000000000000000001";
+       let kp = get_peer_id_from_device_id(device_id).unwrap();
+       let msg = ChatMessage::new(
+           "test".into(),
+           "Test Signed!".into(),
+       );
+       let signed = msg.sign(&kp);
+       assert!(signed.verify_signature().is_ok());
+       assert_eq!(signed.content, "Test Signed!");
+    }
+    #[test]
+    fn test_signature_verification_fails_on_tampered() {
+       let device_id = "0000000000000000000000000000000000000000000000000000000000000001";
+       let kp = get_peer_id_from_device_id(device_id).unwrap();
+       let mut msg = ChatMessage::new(
+           "test".into(),
+           "Original".into(),
+       );
+       let signed = msg.sign(&kp);
+       let mut tampered = signed.clone();
+       tampered.content = "Hacked!".into();
+       assert!(tampered.verify_signature().is_err());
+    }
+
     #[tokio::test]
     async fn test_connection_via_relay_fallback() {
         use std::time::Duration;
@@ -94,7 +120,7 @@ mod tests {
        let (mut swarm1, _, mut rx1) = create_swarm_with_rx(kp1).await.unwrap();
        let (mut swarm2, tx2, mut rx2) = create_swarm_with_rx(kp2).await.unwrap();
        connect_swarms(&mut swarm1, &mut swarm2).await;
-       let msg = ChatMessage { sender: "peer1".into(), content: "Hello P2P!".into() };
+       let msg = ChatMessage::new("peer1".into(),"Hello P2P!".into());
        let peer2 = *swarm2.local_peer_id();
        swarm1.behaviour_mut().messages.send_request(&peer2, msg.clone());
 
@@ -204,7 +230,7 @@ mod tests {
         }).await.unwrap();
 
         // Отправляем сообщение
-        let msg = ChatMessage { sender: "peer1".into(), content: "Hello P2P!".into() };
+        let msg = ChatMessage::new( "peer1".into(), "Hello P2P!".into() );
         let _request_id = swarm1.behaviour_mut().messages.send_request(&peer2, msg.clone());
 
         // Ожидаем получение и отвечаем
